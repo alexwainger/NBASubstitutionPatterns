@@ -1,80 +1,112 @@
+import sys
 import csv
 import urllib2
 import requests
 import re
-from lxml import html
+from itertools import izip
+from lxml import html, etree
 from bs4 import BeautifulSoup
 
 class Player:
 
-	def __init__(self, name, games_played, games_started, position):
+	def __init__(self, name, position):
 		self.name = name;
+		self.position = position;
+		self.minutes_count = [0] * 48;
+
+	def set_games_data(self, games_played, games_started, minutes_played):
 		self.games_played = games_played;
 		self.games_started = games_started;
-		self.position = position;
+		self.minutes_played = minutes_played;
+
+	def add_minute_range(self, start_min, end_min):
+		for i in range(start_min, end_min + 1):
+			self.minutes_count[i] += 1;
 
 	def get_position_val(self):
-		val = 0.0;
-		count = 0.0;
-		if "Point Guard" in self.position:
-			val += 1.0;
-			count += 1.0;
-		if "Shooting Guard" in self.position:
-			val += 2.0;
-			count += 1.0;
-		if "Small Forward" in self.position:
-			val += 3.0;
-			count += 1.0;
-		if "Power Forward" in self.position:
-			val += 4.0;
-			count += 1.0;
-		if "Center" in self.position:
-			val += 5.0;
-			count += 1.0;
+		if "PG" in self.position:
+			return 1;
+		if "SG" in self.position:
+			return 2;
+		if "SF" in self.position:
+			return 3;
+		if "PF" in self.position:
+			return 4;
+		if "C" in self.position:
+			return 5;
 
-		return val / count;
+		print "Uh oh, no position for: " + self.name;
+		return 0;
 	
 	def get_starting_percentage(self):
-		return self.games_started / self.games_played;
+		return float(self.games_started) / float(self.games_played);
 
+	def get_min_per_game(self):
+		return float(self.minutes_played) / float(self.games_played);
+
+	def to_string(self):
+		return self.name + ": " + str(self.get_starting_percentage()) + ", " + str(self.get_position_val());
 
 def generate_player_dictionary(team_page_link):
 	player_dict = {};
 	response = urllib2.urlopen("http://www.basketball-reference.com" + team_page_link).read();
 	team_page = BeautifulSoup(response, 'lxml');
-	total_table = team_page.find("table", {"id":"totals"});
-	rows = total_table.find("tbody").findAll("tr", {"class":""});
-	
-	for player_row in rows:	
+	totals_table = team_page.find("table", {"id":"totals"});
+	totals_rows = totals_table.find("tbody").findAll("tr");	
+	roster_table = team_page.find("table", {"id":"roster"});
+	roster_rows = roster_table.find("tbody").findAll("tr");
+
+	for player_row in roster_rows:	
 		cols = player_row.findAll("td");
-		player_link = cols[1].find("a")["href"];
-		
-		player_page = urllib2.urlopen("http://www.basketball-reference.com" + player_link, 'lxml').read();
-		
-		# Get player position
-		info_box = BeautifulSoup(player_page, 'lxml').find(id = 'info_box');
-		player_info = info_box.find("p", {"class": "padding_bottom_half"});	
-		position = player_info.contents[1].strip(u' \xa0\u25aa\xa0').encode('utf-8');
-
-		# Get player name, # games started and played
-		player_name = cols[1].find("a").contents[0];
-		games_played = float(cols[3].find("a").contents[0]);
-		games_started = float(cols[4].contents[0]);
-
-		p = Player(player_name, games_played, games_started, position);
-		
+		player_name = cols[1].find("a").text;
+		position = cols[2].text;
 		if player_name in player_dict:
 			print 'Uh oh, we found a duplicate: ' + player_name +" on " + team_page_link;
 		else:
+			p = Player(player_name, position);
 			player_dict[player_name] = p;
 
-	return player_dict;
+	for totals_row in totals_rows[0:len(totals_rows) - 1]:
+		cols = totals_row.findAll("td");
+		player_name = cols[1].find("a").text;
+		p = player_dict[player_name];
+
+		games_played = int(cols[3].find("a").text);
+		games_started = int(cols[4].text);
+		minutes_played = int(cols[5].text);
+		
+		p.set_games_data(games_played, games_started, minutes_played);
+
+	return player_dict;		
+
+width_regex = re.compile("width:([0-9]+)px;");
+def process_plus_minus(plus_minus_link, table_index, num_overtimes, players):
+	pm_page = html.fromstring(requests.get(plus_minus_link).content);
+	top_table = pm_page.xpath('//*[@id="page_content"]/table/tr/td/div[2]/div[2]');
+	print top_table.attrib.get("style");
+	team_table = pm_page.xpath('//*[@id="page_content"]/table/tr/td/div[2]/div[2]/div[' + str(table_index) + ']')[0];
+	table_soup = BeautifulSoup(etree.tostring(team_table), 'lxml').find('div');
+	rows = table_soup.findAll('div', recursive=False)[2:];
+
+	for player_row, minutes_row in izip(*[iter(rows)] * 2):
+		player_name = player_row.find('span').text;
+		player_obj = players[player_name];
+		curr_minute = 0;
+		print player_name;
+		for bar in minutes_row.findAll('div'):
+			classes = bar.get('class');
+			style = int(width_regex.search(bar.get('style')).group(1));
+			if "background_lime" in classes or "background_red" in classes:
+				pass;
+			else:
+				pass;
 
 def main():
 
-	years = ["2016"]#, "2015", "2014"];
+	years = ["2016"];#, "2015", "2014", "2013"];
 	
 	for year in years:
+		print "DOING YEAR " + year;
 		season_summary = html.fromstring(requests.get("http://www.basketball-reference.com/leagues/NBA_" + year + ".html").content);
 		for i in range(1, 31):
 			abr_regex = re.compile("^\/teams\/(.*)\/.*\.html");
@@ -82,8 +114,6 @@ def main():
 			team_abr = abr_regex.search(team_page_link).group(1);
 
 			players = generate_player_dictionary(team_page_link);
-			print players;
-
 			schedule_link = "http://www.basketball-reference.com/teams/" + team_abr + "/2016_games.html";
 			schedule_page = html.fromstring(requests.get(schedule_link).content);
 
@@ -94,8 +124,20 @@ def main():
 					link = schedule_page.xpath('//*[@id="teams_games"]/tbody/tr[' + str(i) + ']/td[5]/a/@href');
 					gameID_regex = re.compile('^/boxscores/([^.]+).html');
 					gameID = gameID_regex.search(link[0]).group(1);
+					isHomeGame = len(schedule_page.xpath('//*[@id="teams_games"]/tbody/tr[' + str(i) + ']/td[6]/text()')) == 0;
+					overtimeCell = schedule_page.xpath('//*[@id="teams_games"]/tbody/tr[' + str(i) + ']/td[9]/text()');
+					num_overtimes = 0;
+					if len(overtimeCell) == 1:
+						if overtimeCell[0] == "OT":
+							num_overtimes = 1;
+						else:
+							num_overtimes = int(overtimeCell[0][0]);
 					plus_minus_link = "http://www.basketball-reference.com/boxscores/plus-minus/" + gameID + ".html";
 
+					process_plus_minus(plus_minus_link, isHomeGame + 1, num_overtimes, players);
+					sys.exit();
+
+			# Write results to file...
 
 if __name__ == "__main__":
 	main();

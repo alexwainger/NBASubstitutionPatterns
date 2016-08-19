@@ -6,13 +6,14 @@ import re
 from itertools import izip
 from lxml import html, etree
 from bs4 import BeautifulSoup
-
+from tabulate import tabulate
 class Player:
 
 	def __init__(self, name, position):
 		self.name = name;
 		self.position = position;
 		self.minutes_count = [0] * 48;
+		self.games_count = 0;
 
 	def set_games_data(self, games_played, games_started, minutes_played):
 		self.games_played = games_played;
@@ -20,8 +21,9 @@ class Player:
 		self.minutes_played = minutes_played;
 
 	def add_minute_range(self, start_min, end_min):
-		for i in range(start_min, end_min + 1):
-			self.minutes_count[i] += 1;
+		for i in range(start_min, end_min):
+			if self.minutes_count[i] < self.games_count:
+				self.minutes_count[i] += 1;
 
 	def get_position_val(self):
 		if "PG" in self.position:
@@ -37,7 +39,7 @@ class Player:
 
 		print "Uh oh, no position for: " + self.name;
 		return 0;
-	
+
 	def get_starting_percentage(self):
 		return float(self.games_started) / float(self.games_played);
 
@@ -74,7 +76,7 @@ def generate_player_dictionary(team_page_link):
 		games_played = int(cols[3].find("a").text);
 		games_started = int(cols[4].text);
 		minutes_played = int(cols[5].text);
-		
+
 		p.set_games_data(games_played, games_started, minutes_played);
 
 	return player_dict;		
@@ -82,29 +84,36 @@ def generate_player_dictionary(team_page_link):
 width_regex = re.compile("width:([0-9]+)px;");
 def process_plus_minus(plus_minus_link, table_index, num_overtimes, players):
 	pm_page = html.fromstring(requests.get(plus_minus_link).content);
-	top_table = pm_page.xpath('//*[@id="page_content"]/table/tr/td/div[2]/div[2]');
-	print top_table.attrib.get("style");
+	total_width = int(width_regex.search(pm_page.xpath('//*[@id="page_content"]/table/tr/td/div[2]/div[2]')[0].attrib.get("style")).group(1)) - 1;
 	team_table = pm_page.xpath('//*[@id="page_content"]/table/tr/td/div[2]/div[2]/div[' + str(table_index) + ']')[0];
 	table_soup = BeautifulSoup(etree.tostring(team_table), 'lxml').find('div');
 	rows = table_soup.findAll('div', recursive=False)[2:];
 
+	total_minutes = 48.0 + (5.0 * num_overtimes);
+	minute_width = total_width / total_minutes;
 	for player_row, minutes_row in izip(*[iter(rows)] * 2):
 		player_name = player_row.find('span').text;
 		player_obj = players[player_name];
-		curr_minute = 0;
-		print player_name;
+		player_obj.games_count += 1;
+		curr_minute = 0.0;
 		for bar in minutes_row.findAll('div'):
 			classes = bar.get('class');
-			style = int(width_regex.search(bar.get('style')).group(1));
+			width = int(width_regex.search(bar.get('style')).group(1)) + 1;
+			span_length = width / minute_width;
+
 			if "background_lime" in classes or "background_red" in classes:
-				pass;
-			else:
-				pass;
+				try:
+					player_obj.add_minute_range(int(round(curr_minute)), int(round(curr_minute + span_length)));
+				except IndexError:
+					print player_name, curr_minute, span_length
+					raise;
+
+			curr_minute += span_length;
 
 def main():
 
 	years = ["2016"];#, "2015", "2014", "2013"];
-	
+
 	for year in years:
 		print "DOING YEAR " + year;
 		season_summary = html.fromstring(requests.get("http://www.basketball-reference.com/leagues/NBA_" + year + ".html").content);
@@ -134,10 +143,15 @@ def main():
 							num_overtimes = int(overtimeCell[0][0]);
 					plus_minus_link = "http://www.basketball-reference.com/boxscores/plus-minus/" + gameID + ".html";
 
+					print "Doing " + gameID;
 					process_plus_minus(plus_minus_link, isHomeGame + 1, num_overtimes, players);
-					sys.exit();
 
-			# Write results to file...
+			with open("test.csv", "wb") as f:
+				writer = csv.writer(f);
+				for name in players:
+					player_obj = players[name];
+					writer.writerow(player_obj.minutes_count + [player_obj.name]);
 
+			sys.exit();
 if __name__ == "__main__":
 	main();

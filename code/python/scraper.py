@@ -6,13 +6,14 @@ import re
 from itertools import izip
 from lxml import html, etree
 from bs4 import BeautifulSoup
-from tabulate import tabulate
+import heapq
+
 class Player:
 
 	def __init__(self, name, position):
 		self.name = name;
 		self.position = position;
-		self.minutes_count = [0] * 48;
+		self.minutes_count = [0.0] * 48;
 		self.games_count = 0;
 
 	def set_games_data(self, games_played, games_started, minutes_played):
@@ -23,7 +24,7 @@ class Player:
 	def add_minute_range(self, start_min, end_min):
 		for i in range(start_min, end_min):
 			if self.minutes_count[i] < self.games_count:
-				self.minutes_count[i] += 1;
+				self.minutes_count[i] += 1.0;
 
 	def get_position_val(self):
 		if "PG" in self.position:
@@ -97,18 +98,19 @@ def process_plus_minus(plus_minus_link, table_index, num_overtimes, players):
 		player_obj.games_count += 1;
 		curr_minute = 0.0;
 		for bar in minutes_row.findAll('div'):
-			classes = bar.get('class');
-			width = int(width_regex.search(bar.get('style')).group(1)) + 1;
-			span_length = width / minute_width;
+			if round(curr_minute) < 48:
+				classes = bar.get('class');
+				width = int(width_regex.search(bar.get('style')).group(1)) + 1;
+				span_length = width / minute_width;
 
-			if "background_lime" in classes or "background_red" in classes:
-				try:
-					player_obj.add_minute_range(int(round(curr_minute)), int(round(curr_minute + span_length)));
-				except IndexError:
-					print player_name, curr_minute, span_length
-					raise;
+				if "background_lime" in classes or "background_red" in classes or "background_silver" in classes:
+					try:
+						player_obj.add_minute_range(int(round(curr_minute)), int(round(curr_minute + span_length)));
+					except IndexError:
+						print player_name, curr_minute, span_length
+						raise;
 
-			curr_minute += span_length;
+				curr_minute += span_length;
 
 def main():
 
@@ -126,6 +128,7 @@ def main():
 			schedule_link = "http://www.basketball-reference.com/teams/" + team_abr + "/2016_games.html";
 			schedule_page = html.fromstring(requests.get(schedule_link).content);
 
+			print "Working on " + team_abr;
 			## Loop through all the games the team played, parse the play-by-play
 			for i in range(87):
 				## Every 20 rows, there's a header row that we want to ignore
@@ -143,15 +146,20 @@ def main():
 							num_overtimes = int(overtimeCell[0][0]);
 					plus_minus_link = "http://www.basketball-reference.com/boxscores/plus-minus/" + gameID + ".html";
 
-					print "Doing " + gameID;
 					process_plus_minus(plus_minus_link, isHomeGame + 1, num_overtimes, players);
 
-			with open("test.csv", "wb") as f:
-				writer = csv.writer(f);
-				for name in players:
-					player_obj = players[name];
-					writer.writerow(player_obj.minutes_count + [player_obj.name]);
 
-			sys.exit();
+			player_list = players.values();
+			players_by_starting_percentage = sorted(player_list, key=lambda p: p.get_starting_percentage(), reverse=True);
+			starters = sorted(players_by_starting_percentage[0:5], key=lambda p: p.get_position_val());
+			bench = sorted(players_by_starting_percentage[5:], key=lambda p: p.get_min_per_game(), reverse=True);
+			
+			with open("data/" + year + "/" + team_abr + ".csv", "wb") as f:
+				writer = csv.writer(f);
+				for player in starters:
+					writer.writerow([player.name, player.get_starting_percentage(), player.get_min_per_game()] + [x / 82.0 for x in player.minutes_count] );
+				for player in bench:
+					writer.writerow([player.name, player.get_starting_percentage(), player.get_min_per_game()] + [x / 82.0 for x in player.minutes_count] );
+
 if __name__ == "__main__":
 	main();

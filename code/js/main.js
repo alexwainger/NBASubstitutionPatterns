@@ -16,7 +16,6 @@ $(document).ready(function() {
 		colors.push(d3.interpolateYlOrRd(i));
 	}
 
-	console.log(colors.length);
 	var svg = d3.select("#heatmap").append("svg")
 		.attr("width", width + margin.left + margin.right)
 		.attr("height", height + margin.top + margin.bottom)
@@ -56,6 +55,8 @@ $(document).ready(function() {
 					minute_values.push(+data[i].minutes[j]);
 				}
 			}
+
+
 
 			svg.selectAll(".playerLabel")
 				.data(players)

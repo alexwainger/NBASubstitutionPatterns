@@ -1,18 +1,17 @@
 $(document).ready(function() {
-	var margin = { top: 20, right: 0, bottom: 0, left: 135 },
+	var margin = { top: 20, right: 0, bottom: 0, left: 145 },
 		width = 1200 - margin.left - margin.right,
-		height = 550 - margin.top - margin.bottom,
+		height = 800 - margin.top - margin.bottom,
 		gridWidth = Math.floor(width / 48),
 		gridHeight = gridWidth + 4,
-		legendElementWidth = gridWidth*2,
+		legendElementWidth = gridWidth*3,
 		buckets = 5,
 		colors = [];
 		times = ["Q1", "Q2", "Q3", "Q4"],
 		bins = [.1, .2, .3, .4, .5, .6, .7, .8, .9],
-		datasets = ["data.tsv", "data2.tsv"];
+		num_players = 0;
 
 	for (var i = .05; i < 1; i += .1) {
-		console.log(i);
 		colors.push(d3.interpolateYlOrRd(i));
 	}
 
@@ -21,21 +20,40 @@ $(document).ready(function() {
 		.attr("height", height + margin.top + margin.bottom)
 		.append("g")
 		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-		
+
 	var timeLabels = svg.selectAll(".timeLabel")
 		.data(times)
 		.enter().append("text")
 		.text(function(d) { return d; })
 		.attr("x", function(d, i) { return 12 * i * gridWidth; })
 		.attr("y", 0)
+		.attr("class", "time_label")
 		.style("text-anchor", "middle")
 		.attr("transform", "translate(" + gridWidth / 2 + ", -6)");
-		
+
 	var colorScale = d3.scaleThreshold()
 		.domain(bins)
 		.range(colors);
 	
-	$("#go").click(drawHeatMap());
+	$("#team").on("change", drawHeatMap);
+	$("#year").on("change", drawHeatMap);
+
+	drawHeatMap();
+
+	var legend = d3.select(".legend").append("g");
+	legend.selectAll("rect").data(colors).enter().append("rect")
+		.attr("x", function(d, i) { return legendElementWidth * i; })
+		.attr("y", 20)
+		.attr("class", "legend_rect")
+		.attr("width", legendElementWidth)
+		.attr("height", gridHeight)
+		.style("fill", function(d) { return d; });
+	var legend_labels = [0].concat(bins);
+	legend.selectAll("text").data(legend_labels).enter().append("text")
+		.attr("class", "legend_label")
+		.text(function(d) { return parseInt(d * 100) + "%-" + parseInt((d + .1) * 100) + "%"; })
+		.attr("x", function(d, i) { return (legendElementWidth * i) + 5; })
+		.attr("y", 15);
 
 	function drawHeatMap() {
 		team_abr = $("#team")[0].value;
@@ -56,54 +74,36 @@ $(document).ready(function() {
 				}
 			}
 
+			var player_labels = svg.selectAll("text.player_label").data(players);
 
-
-			svg.selectAll(".playerLabel")
-				.data(players)
-				.enter().append("text")
-				.text(function (d) { return d; })
+			player_labels.enter().append("text")
 				.attr("x", 0)
-				.attr("y", function (d, i) { return i * gridHeight; })
+				.attr("class", "player_label")
 				.style("text-anchor", "end")
-				.attr("transform", "translate(-2," + gridHeight / 1.5 + ")");
-	
-	
-			var cards = svg.selectAll(".minute")
+				.merge(player_labels)
+				.text(function (d) {return d;})
+				.attr("y", function (d, i) { return i * gridHeight; })
+				.attr("transform", "translate(-2," + gridHeight / 1.5 + ")")
+
+			player_labels.exit().remove();
+
+			var minute_rects = svg.selectAll("rect.minute")
 				.data(minute_values);
-	
-			cards.append("title");
-	
-			cards.enter().append("rect")
-				.attr("x", function(d, i) { return (i % 48) * gridWidth; })
-				.attr("y", function(d, i) { return Math.floor(i / 48) * gridHeight; })
+		
+			minute_rects.exit().remove();
+			minute_rects.enter().append("rect")
 				.attr("rx", 4)
 				.attr("ry", 4)
 				.attr("width", gridWidth)
 				.attr("height", gridHeight)
-				.attr("class", "bordered")
-				.style("fill", function(d) { return colorScale(d);});
-			/*
-			cards.transition().duration(1000)
-			.style("fill", function(d) { console.log(colorScale(d)); return colorScale(d); });
+				.attr("class", "bordered minute")
+				.merge(minute_rects)
+				.attr("x", function(d, i) { return (i % 48) * gridWidth; })
+				.attr("y", function(d, i) { return Math.floor(i / 48) * gridHeight; })
 
-			cards.select("title").text(function(d) { return d; });
-
-			cards.exit().remove();
-			*/
-			var legend = svg.selectAll(".legend").append("g")
-				.attr("class", "legend");
-	
-			legend.data(colors).enter().append("rect")
-				.attr("x", function(d, i) { return legendElementWidth * i; })
-				.attr("y", (players.length + 2) * gridHeight)
-				.attr("width", legendElementWidth)
-				.attr("height", gridHeight)
-				.style("fill", function(d) { return d; });
-
-			legend.append("text")
-				.text(function(d) { return "≥ " + d; })
-				.attr("x", function(d, i) { return legendElementWidth * i; })
-				.attr("y", height + gridHeight);
+			
+			d3.selectAll("rect.minute").transition().duration(1000)
+				.style("fill", function(d) { console.log(colorScale(d)); return colorScale(d); });
 		});
 	}
 });

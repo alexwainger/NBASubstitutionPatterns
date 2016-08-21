@@ -12,7 +12,12 @@
 			}
 
 			.controls {
-				margin-left: 130px;
+				margin-left: 145px;
+				display:flex;
+				align-items:center;
+			}
+			.legend {
+				margin-left:50px;	
 			}
 		</style>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
@@ -22,7 +27,7 @@
 	</head>
 	<body>
 		<div class="controls">
-			<select id="team">
+			<select id="team" class="midAlign">
 				<option value="ATL">Atlanta Hawks</option>
 				<option value="BOS">Boston Celtics</option>
 				<option value="BRK">Brooklyn Nets</option>
@@ -54,13 +59,13 @@
 				<option value="UTA">Utah Jazz</option>
 				<option value="WAS">Washington Wizards</option>
 			</select>
-			<select id="year">
+			<select id="year" class="midAlign">
 				<option value="2016">2015-2016</option>
 				<option value="2015">2014-2015</option>
 				<option value="2014">2013-2014</option>
 				<option value="2013">2012-2013</option>
 			</select>
-			<input id="go" type="button" value="GO!"/>
+			<svg width="750" height="50" class="legend"></svg>
 		</div>
 		<div id="heatmap"></div>
 	</body>

@@ -62,6 +62,8 @@ def generate_player_dictionary(team_page_link):
 	for player_row in roster_rows:	
 		cols = player_row.findAll("td");
 		player_name = cols[1].find("a").text;
+		if player_name == "Glenn Robinson":
+			player_name = "Glenn Robinson III";
 		position = cols[2].text;
 		if player_name in player_dict:
 			print 'Uh oh, we found a duplicate: ' + player_name +" on " + team_page_link;
@@ -72,6 +74,8 @@ def generate_player_dictionary(team_page_link):
 	for totals_row in totals_rows[0:len(totals_rows) - 1]:
 		cols = totals_row.findAll("td");
 		player_name = cols[1].find("a").text;
+		if player_name == "Glenn Robinson":
+			player_name = "Glenn Robinson III";
 		p = player_dict[player_name];
 
 		games_played = int(cols[3].find("a").text);
@@ -94,6 +98,12 @@ def process_plus_minus(plus_minus_link, table_index, num_overtimes, players):
 	minute_width = total_width / total_minutes;
 	for player_row, minutes_row in izip(*[iter(rows)] * 2):
 		player_name = player_row.find('span').text;
+		if player_name == "Jose Barea":
+			player_name = "J.J. Barea";
+		elif player_name == "John Lucas":
+			player_name = "John Lucas III";
+		elif player_name == "Glenn Robinson":
+			player_name = "Glenn Robinson III";
 		player_obj = players[player_name];
 		player_obj.games_count += 1;
 		curr_minute = 0.0;
@@ -114,23 +124,25 @@ def process_plus_minus(plus_minus_link, table_index, num_overtimes, players):
 
 def main():
 
-	years = ["2016"];#, "2015", "2014", "2013"];
+	years = ["2016", "2015", "2014", "2013"];
 
 	for year in years:
 		print "DOING YEAR " + year;
 		season_summary = html.fromstring(requests.get("http://www.basketball-reference.com/leagues/NBA_" + year + ".html").content);
-		for i in range(1, 31):
+		for i in range(18, 31):
 			abr_regex = re.compile("^\/teams\/(.*)\/.*\.html");
 			team_page_link = season_summary.xpath('//*[@id="team"]/tbody/tr[' + str(i) + ']/td[2]/a/@href')[0];
 			team_abr = abr_regex.search(team_page_link).group(1);
 
 			players = generate_player_dictionary(team_page_link);
-			schedule_link = "http://www.basketball-reference.com/teams/" + team_abr + "/2016_games.html";
+			schedule_link = "http://www.basketball-reference.com/teams/" + team_abr + "/" + year + "_games.html";
 			schedule_page = html.fromstring(requests.get(schedule_link).content);
 
 			print "Working on " + team_abr;
-			## Loop through all the games the team played, parse the play-by-play
-			for i in range(87):
+			num_game_rows = 87;
+			if (year == "2013") and (team_abr == "BOS" or team_abr == "IND"):
+				num_game_rows -= 1;
+			for i in range(num_game_rows):
 				## Every 20 rows, there's a header row that we want to ignore
 				if not (i % 21 == 0):
 					link = schedule_page.xpath('//*[@id="teams_games"]/tbody/tr[' + str(i) + ']/td[5]/a/@href');
@@ -156,6 +168,7 @@ def main():
 			
 			with open("data/" + year + "/" + team_abr + ".csv", "wb") as f:
 				writer = csv.writer(f);
+				writer.writerow(["Name","StartingPercentage","MPG"] + [str(x) for x in range(1,49)]);
 				for player in starters:
 					writer.writerow([player.name, player.get_starting_percentage(), player.get_min_per_game()] + [x / 82.0 for x in player.minutes_count] );
 				for player in bench:

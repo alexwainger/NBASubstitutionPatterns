@@ -73,7 +73,7 @@ $(document).ready(function() {
 			cards.append("title");
 	
 			cards.enter().append("rect")
-					.attr("x", function(d, i) { return (i % 48) * gridWidth; })
+				.attr("x", function(d, i) { return (i % 48) * gridWidth; })
 				.attr("y", function(d, i) { return Math.floor(i / 48) * gridHeight; })
 				.attr("rx", 4)
 				.attr("ry", 4)

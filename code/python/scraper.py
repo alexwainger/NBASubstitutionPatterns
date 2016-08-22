@@ -6,7 +6,7 @@ import re
 from itertools import izip
 from lxml import html, etree
 from bs4 import BeautifulSoup
-import heapq
+import time
 
 class Player:
 
@@ -41,14 +41,12 @@ class Player:
 		print "Uh oh, no position for: " + self.name;
 		return 0;
 
-	def get_starting_percentage(self):
+	'''def get_starting_percentage(self):
 		return float(self.games_started) / float(self.games_played);
 
 	def get_min_per_game(self):
 		return float(self.minutes_played) / float(self.games_played);
-
-	def to_string(self):
-		return self.name + ": " + str(self.get_starting_percentage()) + ", " + str(self.get_position_val());
+	'''
 
 def generate_player_dictionary(team_page_link):
 	player_dict = {};
@@ -129,7 +127,7 @@ def main():
 	for year in years:
 		print "DOING YEAR " + year;
 		season_summary = html.fromstring(requests.get("http://www.basketball-reference.com/leagues/NBA_" + year + ".html").content);
-		for i in range(18, 31):
+		for i in range(1, 31):
 			abr_regex = re.compile("^\/teams\/(.*)\/.*\.html");
 			team_page_link = season_summary.xpath('//*[@id="team"]/tbody/tr[' + str(i) + ']/td[2]/a/@href')[0];
 			team_abr = abr_regex.search(team_page_link).group(1);
@@ -160,19 +158,18 @@ def main():
 
 					process_plus_minus(plus_minus_link, isHomeGame + 1, num_overtimes, players);
 
-
 			player_list = players.values();
-			players_by_starting_percentage = sorted(player_list, key=lambda p: p.get_starting_percentage(), reverse=True);
-			starters = sorted(players_by_starting_percentage[0:5], key=lambda p: p.get_position_val());
-			bench = sorted(players_by_starting_percentage[5:], key=lambda p: p.get_min_per_game(), reverse=True);
+			players_by_starts = sorted(player_list, key=lambda p: p.games_started, reverse=True);
+			starters = sorted(players_by_starts[0:5], key=lambda p: p.get_position_val());
+			bench = sorted(players_by_starts[5:], key=lambda p: p.minutes_played, reverse=True);
 			
 			with open("data/" + year + "/" + team_abr + ".csv", "wb") as f:
 				writer = csv.writer(f);
-				writer.writerow(["Name","StartingPercentage","MPG"] + [str(x) for x in range(1,49)]);
-				for player in starters:
-					writer.writerow([player.name, player.get_starting_percentage(), player.get_min_per_game()] + [x / 82.0 for x in player.minutes_count] );
-				for player in bench:
-					writer.writerow([player.name, player.get_starting_percentage(), player.get_min_per_game()] + [x / 82.0 for x in player.minutes_count] );
+				writer.writerow(["Name", "GamesPlayed", "MinutesPlayed"] + [str(x) for x in range(1,49)]);
+				for player in starters + bench:
+					writer.writerow([player.name, player.games_played, player.minutes_played] + [x / 82.0 for x in player.minutes_count] );
 
 if __name__ == "__main__":
-	main();
+	start_time = time.time();
+	main()
+	print("--- %s seconds ---" % (time.time() - start_time))

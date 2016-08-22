@@ -5,11 +5,9 @@ $(document).ready(function() {
 		gridWidth = Math.floor(width / 48),
 		gridHeight = gridWidth + 4,
 		legendElementWidth = gridWidth*3,
-		buckets = 5,
-		colors = [];
+		colors = [],
 		times = ["Q1", "Q2", "Q3", "Q4"],
-		bins = [.1, .2, .3, .4, .5, .6, .7, .8, .9],
-		num_players = 0;
+		bins = [.1, .2, .3, .4, .5, .6, .7, .8, .9];
 
 	for (var i = .05; i < 1; i += .1) {
 		colors.push(d3.interpolateYlOrRd(i));
@@ -97,13 +95,13 @@ $(document).ready(function() {
 				.attr("width", gridWidth)
 				.attr("height", gridHeight)
 				.attr("class", "bordered minute")
+				.style("fill", colors[0])
 				.merge(minute_rects)
 				.attr("x", function(d, i) { return (i % 48) * gridWidth; })
 				.attr("y", function(d, i) { return Math.floor(i / 48) * gridHeight; })
-
 			
-			d3.selectAll("rect.minute").transition().duration(1000)
-				.style("fill", function(d) { console.log(colorScale(d)); return colorScale(d); });
+			d3.selectAll("rect.minute").transition().duration(500)
+				.style("fill", function(d) { return colorScale(d); });
 		});
 	}
 });

@@ -1,8 +1,14 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<title>NBA Substitution Patterns</title>
+		<link rel="icon" type="image/png" href="img/icon.png">	  
 		<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 		<style>
+			hr {
+				margin-top:0px;
+				margin-bottom:10px;
+			}
 			rect.bordered {
 				stroke: #E6E6E6;
 				stroke-width:1px;   
@@ -10,6 +16,13 @@
 
 			text {
 				font-size: 9pt;
+			}
+
+			.title {
+				margin-left:145px;
+				margin-right:145px;
+				display: flex;
+				justify-content: space-between;
 			}
 
 			.controls {
@@ -27,7 +40,12 @@
 		<script src="code/js/main.js"></script>
 	</head>
 	<body>
-		<div class="content">
+		<div class="container-fluid">
+			<div class="title">
+				<h2>NBA Substitution Patterns</h2>
+				<h2><small>by <a href="https://github.com/alexwainger">alex wainger</a></small></h2>
+			</div>
+			<hr>
 			<div class="controls">
 				<select id="team" class="midAlign">
 					<option value="ATL">Atlanta Hawks</option>

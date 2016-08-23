@@ -56,7 +56,7 @@ $(document).ready(function() {
 	function drawHeatMap() {
 		team_abr = $("#team")[0].value;
 		year = $("#year")[0].value;
-		d3.csv("../data/" + year + "/" + team_abr + ".csv", function(d) {
+		d3.csv("data/" + year + "/" + team_abr + ".csv", function(d) {
 			var toReturn = { name: d.Name, minutes: []};
 			for (var i = 1; i < 49; i++) {
 				toReturn.minutes.push(d[i]);

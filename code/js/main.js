@@ -1,9 +1,9 @@
 $(document).ready(function() {
 	var margin = { top: 20, right: 0, bottom: 0, left: 145 },
 		width = 1200 - margin.left - margin.right,
-		height = 800 - margin.top - margin.bottom,
+		height = 500 - margin.top - margin.bottom,
 		gridWidth = Math.floor(width / 48),
-		gridHeight = gridWidth + 4,
+		gridHeight = gridWidth + 2,
 		legendElementWidth = gridWidth*3,
 		colors = [],
 		times = ["Q1", "Q2", "Q3", "Q4"],
@@ -41,7 +41,7 @@ $(document).ready(function() {
 	var legend = d3.select(".legend").append("g");
 	legend.selectAll("rect").data(colors).enter().append("rect")
 		.attr("x", function(d, i) { return legendElementWidth * i; })
-		.attr("y", 20)
+		.attr("y", 15)
 		.attr("class", "legend_rect")
 		.attr("width", legendElementWidth)
 		.attr("height", gridHeight)
@@ -50,18 +50,22 @@ $(document).ready(function() {
 	legend.selectAll("text").data(legend_labels).enter().append("text")
 		.attr("class", "legend_label")
 		.text(function(d) { return parseInt(d * 100) + "%-" + parseInt((d + .1) * 100) + "%"; })
-		.attr("x", function(d, i) { return (legendElementWidth * i) + 5; })
-		.attr("y", 15);
+		.attr("x", function(d, i) { return (legendElementWidth * i) + 2; })
+		.attr("y", 12);
 
 	function drawHeatMap() {
 		team_abr = $("#team")[0].value;
 		year = $("#year")[0].value;
 		d3.csv("data/" + year + "/" + team_abr + ".csv", function(d) {
-			var toReturn = { name: d.Name, minutes: []};
-			for (var i = 1; i < 49; i++) {
-				toReturn.minutes.push(d[i]);
+			if (parseInt(d.GamesPlayed) < 10 || parseInt(d.MinutesPlayed) < 250 || parseFloat(d.MinutesPlayed) / parseFloat(d.GamesPlayed) < 5.0) {
+				console.log("Excluding " + d.Name);
+			} else {
+				var toReturn = { name: d.Name, minutes: []};
+				for (var i = 1; i < 49; i++) {
+					toReturn.minutes.push(d[i]);
+				}
+				return toReturn;
 			}
-			return toReturn;
 		}, function(data) {
 			var players = [];
 			var minute_values = [];

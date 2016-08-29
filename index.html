@@ -7,7 +7,7 @@
 		<style>
 			hr {
 				margin-top:0px;
-				margin-bottom:10px;
+				margin-bottom:2px;
 			}
 			rect.bordered {
 				stroke: #E6E6E6;
@@ -16,6 +16,17 @@
 
 			text {
 				font-size: 9pt;
+			}
+
+			h2 {
+				margin-top:10px;
+			}
+			p.description {
+				font-size: 9pt;
+				margin-bottom:0px;
+				margin-top:5px;
+				margin-left: 145px;
+				margin-right:90px;
 			}
 
 			.title {
@@ -46,6 +57,9 @@
 				<h2><small>by <a href="https://github.com/alexwainger">alex wainger</a></small></h2>
 			</div>
 			<hr>
+			<div>
+				<p class="description">Each row represents a different player, while each column represents a particular minute. The color of each cell indicates the percentage of games that the player played that minute. The percentages are out of 82 games, not the number of games the player played, so 2014-15 Kevin Durant has a 30-40% color for the first minute, even though he started all 27 games that he played in, since he missed 55 games with an injury.</p>
+			</div>
 			<div class="controls">
 				<select id="team" class="midAlign">
 					<option value="ATL">Atlanta Hawks</option>
@@ -85,7 +99,7 @@
 					<option value="2014">2013-2014</option>
 					<option value="2013">2012-2013</option>
 				</select>
-				<svg width="750" height="50" class="legend"></svg>
+				<svg width="750" height="40" class="legend"></svg>
 			</div>
 			<div id="heatmap"></div>
 		</div>

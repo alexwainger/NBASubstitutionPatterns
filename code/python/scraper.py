@@ -6,6 +6,7 @@ import re
 from itertools import izip
 from lxml import html, etree
 from bs4 import BeautifulSoup
+from bs4.element import Comment
 import time
 
 class Player:
@@ -52,37 +53,50 @@ def generate_player_dictionary(team_page_link):
 	player_dict = {};
 	response = urllib2.urlopen("http://www.basketball-reference.com" + team_page_link).read();
 	team_page = BeautifulSoup(response, 'lxml');
-	totals_table = team_page.find("table", {"id":"totals"});
-	totals_rows = totals_table.find("tbody").findAll("tr");	
-	roster_table = team_page.find("table", {"id":"roster"});
-	roster_rows = roster_table.find("tbody").findAll("tr");
+	roster_rows = team_page.find("table", {"id": "roster"}).find("tbody").findAll("tr");
 
-	for player_row in roster_rows:	
-		cols = player_row.findAll("td");
-		player_name = cols[1].find("a").text;
-		if player_name == "Glenn Robinson":
-			player_name = "Glenn Robinson III";
-		position = cols[2].text;
+	for player_row in roster_rows:
+		player_name = player_row.find("td", {"data-stat": "player"}).find("a").text;
+		if player_name == "Glenn Robinson III":
+			player_name = "Glenn Robinson";
+		elif player_name == "Nene":
+			player_name = "Nene Hilario";
+		elif player_name == "Taurean Prince":
+			player_name = "Taurean Waller-Prince";
+		elif player_name == "Kelly Oubre Jr.":
+			player_name = "Kelly Oubre";
+
+		position = player_row.find("td", {"data-stat": "pos"}).text;
 		if player_name in player_dict:
 			print 'Uh oh, we found a duplicate: ' + player_name +" on " + team_page_link;
 		else:
 			p = Player(player_name, position);
 			player_dict[player_name] = p;
 
-	for totals_row in totals_rows[0:len(totals_rows) - 1]:
-		cols = totals_row.findAll("td");
-		player_name = cols[1].find("a").text;
-		if player_name == "Glenn Robinson":
-			player_name = "Glenn Robinson III";
-		p = player_dict[player_name];
+	comments = team_page.findAll(text=lambda text:isinstance(text, Comment))
+	for comment in comments:
+		comment_string = re.split("(?:<!--)|(?:-->)", comment)[0];
+		comment_soup = BeautifulSoup(comment_string, "lxml");
+		totals_table = comment_soup.find("table", {"id": "totals"});
+		if totals_table:
+			totals_rows = totals_table.find("tbody").findAll("tr");
+			for totals_row in totals_rows:
+				cols = totals_row.findAll("td");
+				player_name = cols[0].find("a").text;
 
-		games_played = int(cols[3].find("a").text);
-		games_started = int(cols[4].text);
-		minutes_played = int(cols[5].text);
+				if player_name not in player_dict:
+					player_dict[player_name] = Player(player_name, "N/A");
+					print "Adding ", player_name;
 
-		p.set_games_data(games_played, games_started, minutes_played);
+				p = player_dict[player_name];
 
-	return player_dict;		
+				games_played = int(cols[2].find("a").text);
+				games_started = int(cols[3].text);
+				minutes_played = int(cols[4].text);
+
+				p.set_games_data(games_played, games_started, minutes_played);
+
+	return player_dict;
 
 width_regex = re.compile("width:([0-9]+)px;");
 def process_plus_minus(plus_minus_link, table_index, num_overtimes, players):
@@ -96,12 +110,6 @@ def process_plus_minus(plus_minus_link, table_index, num_overtimes, players):
 	minute_width = total_width / total_minutes;
 	for player_row, minutes_row in izip(*[iter(rows)] * 2):
 		player_name = player_row.find('span').text;
-		if player_name == "Jose Barea":
-			player_name = "J.J. Barea";
-		elif player_name == "John Lucas":
-			player_name = "John Lucas III";
-		elif player_name == "Glenn Robinson":
-			player_name = "Glenn Robinson III";
 		player_obj = players[player_name];
 		player_obj.games_count += 1;
 		curr_minute = 0.0;
@@ -127,48 +135,56 @@ def main():
 
 	for year in years:
 		print "DOING YEAR " + year;
-		season_summary = html.fromstring(requests.get("http://www.basketball-reference.com/leagues/NBA_" + year + ".html").content);
-		for i in range(1, 31):
-			abr_regex = re.compile("^\/teams\/(.*)\/.*\.html");
-			team_page_link = season_summary.xpath('//*[@id="team"]/tbody/tr[' + str(i) + ']/td[2]/a/@href')[0];
-			team_abr = abr_regex.search(team_page_link).group(1);
+		link = "http://www.basketball-reference.com/leagues/NBA_" + year + ".html";
+		response = urllib2.urlopen(urllib2.Request(link, headers={'User-Agent': 'Mozilla'})).read();
+		season_summary = BeautifulSoup(response, 'lxml');
+		comments = season_summary.findAll(text=lambda text:isinstance(text, Comment))
+		for comment in comments:
+			comment_string = re.split("(?:<!--)|(?:-->)", comment)[0];
+			comment_soup = BeautifulSoup(comment_string, "lxml");
+			team_stats = comment_soup.find("table", {"id": "team-stats-per_game"});
+			if team_stats:
+				team_names = team_stats.find("tbody").findAll("td", {"data-stat": "team_name"});
+				for team_name in team_names:
+					team_page_link = team_name.find("a")['href'];
+					abr_regex = re.compile("^\/teams\/(.*)\/.*\.html");
+					team_abr = abr_regex.search(team_page_link).group(1);
 
-			players = generate_player_dictionary(team_page_link);
-			schedule_link = "http://www.basketball-reference.com/teams/" + team_abr + "/" + year + "_games.html";
-			schedule_page = html.fromstring(requests.get(schedule_link).content);
+					players = generate_player_dictionary(team_page_link);
+					schedule_link = "http://www.basketball-reference.com/teams/" + team_abr + "/" + year + "_games.html";
+					response = urllib2.urlopen(urllib2.Request(schedule_link, headers={'User-Agent': 'Mozilla'})).read();
+					schedule_soup = BeautifulSoup(response, 'lxml');
+					game_rows = schedule_soup.find("table", {"id": "games"}).find("tbody").findAll("tr", {"class": None});
+					print "Working on " + team_abr;
+					for game_row in game_rows:
+						game_link = game_row.find("td", {"data-stat": "box_score_text"}).find("a")['href'];
+						gameID_regex = re.compile('^/boxscores/([^.]+).html');
+						gameID = gameID_regex.search(game_link).group(1);
+					
+						isHomeGame = not game_row.find("td", {"data-stat": "game_location"}).text == "@"
+						print isHomeGame, game_row.find("td", {"data-stat": "game_location"}).text
 
-			print "Working on " + team_abr;
-			num_game_rows = 87;
-			if (year == "2013") and (team_abr == "BOS" or team_abr == "IND"):
-				num_game_rows -= 1;
-			for i in range(num_game_rows):
-				## Every 20 rows, there's a header row that we want to ignore
-				if not (i % 21 == 0):
-					link = schedule_page.xpath('//*[@id="teams_games"]/tbody/tr[' + str(i) + ']/td[5]/a/@href');
-					gameID_regex = re.compile('^/boxscores/([^.]+).html');
-					gameID = gameID_regex.search(link[0]).group(1);
-					isHomeGame = len(schedule_page.xpath('//*[@id="teams_games"]/tbody/tr[' + str(i) + ']/td[6]/text()')) == 0;
-					overtimeCell = schedule_page.xpath('//*[@id="teams_games"]/tbody/tr[' + str(i) + ']/td[9]/text()');
-					num_overtimes = 0;
-					if len(overtimeCell) == 1:
-						if overtimeCell[0] == "OT":
-							num_overtimes = 1;
-						else:
-							num_overtimes = int(overtimeCell[0][0]);
-					plus_minus_link = "http://www.basketball-reference.com/boxscores/plus-minus/" + gameID + ".html";
+						overtime_string = game_row.find("td", {"data-stat": "overtimes"}).text;
+						num_overtimes = 0;
+						if overtime_string:
+							if overtime_string == "OT":
+								num_overtimes = 1;
+							else:
+								num_overtimes = int(overtime_string[0]);
+						plus_minus_link = "http://www.basketball-reference.com/boxscores/plus-minus/" + gameID + ".html";
 
-					process_plus_minus(plus_minus_link, isHomeGame + 1, num_overtimes, players);
+						process_plus_minus(plus_minus_link, isHomeGame + 1, num_overtimes, players);
 
-			player_list = players.values();
-			players_by_starts = sorted(player_list, key=lambda p: p.games_started, reverse=True);
-			starters = sorted(players_by_starts[0:5], key=lambda p: p.get_position_val());
-			bench = sorted(players_by_starts[5:], key=lambda p: p.minutes_played, reverse=True);
-			
-			with open("data/" + year + "/" + team_abr + ".csv", "wb") as f:
-				writer = csv.writer(f);
-				writer.writerow(["Name", "GamesPlayed", "MinutesPlayed"] + [str(x) for x in range(1,49)]);
-				for player in starters + bench:
-					writer.writerow([player.name, player.games_played, player.minutes_played] + [x / 82.0 for x in player.minutes_count] );
+					player_list = players.values();
+					players_by_starts = sorted(player_list, key=lambda p: p.games_started, reverse=True);
+					starters = sorted(players_by_starts[0:5], key=lambda p: p.get_position_val());
+					bench = sorted(players_by_starts[5:], key=lambda p: p.minutes_played, reverse=True);
+
+					with open("data/new_script/" + year + "/" + team_abr + ".csv", "wb") as f:
+						writer = csv.writer(f);
+						writer.writerow(["Name", "GamesPlayed", "MinutesPlayed"] + [str(x) for x in range(1,49)]);
+						for player in starters + bench:
+							writer.writerow([player.name, player.games_played, player.minutes_played] + [x / 82.0 for x in player.minutes_count] );
 
 if __name__ == "__main__":
 	start_time = time.time();

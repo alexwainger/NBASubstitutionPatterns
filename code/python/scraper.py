@@ -122,7 +122,8 @@ def process_plus_minus(plus_minus_link, table_index, num_overtimes, players):
 
 def main():
 
-	years = ["2016", "2015", "2014", "2013"];
+	#years = ["2016", "2015", "2014", "2013"];
+	years = ["2017"];
 
 	for year in years:
 		print "DOING YEAR " + year;

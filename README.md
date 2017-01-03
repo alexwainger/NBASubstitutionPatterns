@@ -6,4 +6,5 @@ This project uses aggregated on-off data to visualize each team's substitution p
 
 #Reception
 Original r/nba Reddit Post: https://redd.it/5069gr
+
 Fan post on r/RipCity: https://redd.it/50ci7w

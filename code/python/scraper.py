@@ -7,6 +7,7 @@ from itertools import izip
 from lxml import html, etree
 from bs4 import BeautifulSoup
 from bs4.element import Comment
+from datetime import datetime
 import time
 
 class Player:
@@ -16,6 +17,9 @@ class Player:
 		self.position = position;
 		self.minutes_count = [0.0] * 48;
 		self.games_count = 0;
+		self.games_played = 0;
+		self.games_started = 0;
+		self.minutes_played = 0;
 
 	def set_games_data(self, games_played, games_started, minutes_played):
 		self.games_played = games_played;
@@ -41,13 +45,6 @@ class Player:
 
 		print "Uh oh, no position for: " + self.name;
 		return 0;
-
-	'''def get_starting_percentage(self):
-		return float(self.games_started) / float(self.games_played);
-
-	def get_min_per_game(self):
-		return float(self.minutes_played) / float(self.games_played);
-	'''
 
 def generate_player_dictionary(team_page_link):
 	player_dict = {};
@@ -99,12 +96,16 @@ def generate_player_dictionary(team_page_link):
 	return player_dict;
 
 width_regex = re.compile("width:([0-9]+)px;");
-def process_plus_minus(plus_minus_link, table_index, num_overtimes, players):
-	pm_page = html.fromstring(requests.get(plus_minus_link).content);
-	total_width = int(width_regex.search(pm_page.xpath('//*[@id="page_content"]/table/tr/td/div[2]/div[2]')[0].attrib.get("style")).group(1)) - 1;
-	team_table = pm_page.xpath('//*[@id="page_content"]/table/tr/td/div[2]/div[2]/div[' + str(table_index) + ']')[0];
-	table_soup = BeautifulSoup(etree.tostring(team_table), 'lxml').find('div');
-	rows = table_soup.findAll('div', recursive=False)[2:];
+def process_plus_minus(plus_minus_link, isHomeGame, num_overtimes, players):
+	print plus_minus_link;
+	response = urllib2.urlopen(urllib2.Request(plus_minus_link, headers={'User-Agent': 'Mozilla'})).read();
+	pm_soup = BeautifulSoup(response, 'lxml');
+	pm_div = pm_soup.find("div", {"class": "plusminus"});
+	style_div =pm_div.find("div", recursive=False);
+
+	total_width = int(width_regex.search(style_div['style']).group(1)) - 1;
+	team_table = style_div.findAll("div", recursive=False)[isHomeGame];
+	rows = team_table.findAll("div", recursive=False)[1:];
 
 	total_minutes = 48.0 + (5.0 * num_overtimes);
 	minute_width = total_width / total_minutes;
@@ -119,7 +120,7 @@ def process_plus_minus(plus_minus_link, table_index, num_overtimes, players):
 				width = int(width_regex.search(bar.get('style')).group(1)) + 1;
 				span_length = width / minute_width;
 
-				if "background_lime" in classes or "background_red" in classes or "background_silver" in classes:
+				if classes is not None and ("plus" in classes or "minus" in classes or "even" in classes):
 					try:
 						player_obj.add_minute_range(int(round(curr_minute)), int(round(curr_minute + span_length)));
 					except IndexError:
@@ -130,7 +131,7 @@ def process_plus_minus(plus_minus_link, table_index, num_overtimes, players):
 
 def main():
 
-	#years = ["2016", "2015", "2014", "2013"];
+	today = datetime.now().date();
 	years = ["2017"];
 
 	for year in years:
@@ -156,35 +157,40 @@ def main():
 					schedule_soup = BeautifulSoup(response, 'lxml');
 					game_rows = schedule_soup.find("table", {"id": "games"}).find("tbody").findAll("tr", {"class": None});
 					print "Working on " + team_abr;
+					gamesPlayed = 0.0;
 					for game_row in game_rows:
-						game_link = game_row.find("td", {"data-stat": "box_score_text"}).find("a")['href'];
-						gameID_regex = re.compile('^/boxscores/([^.]+).html');
-						gameID = gameID_regex.search(game_link).group(1);
-					
-						isHomeGame = not game_row.find("td", {"data-stat": "game_location"}).text == "@"
-						print isHomeGame, game_row.find("td", {"data-stat": "game_location"}).text
+						gameDate = datetime.strptime(game_row.find("td", {"data-stat": "date_game"})['csk'], "%Y-%m-%d").date();
+						if gameDate >= today:
+							break;
+						else:
+							gamesPlayed += 1.0;
+							game_link = game_row.find("td", {"data-stat": "box_score_text"}).find("a")['href'];
+							gameID_regex = re.compile('^/boxscores/([^.]+).html');
+							gameID = gameID_regex.search(game_link).group(1);
 
-						overtime_string = game_row.find("td", {"data-stat": "overtimes"}).text;
-						num_overtimes = 0;
-						if overtime_string:
-							if overtime_string == "OT":
-								num_overtimes = 1;
-							else:
-								num_overtimes = int(overtime_string[0]);
-						plus_minus_link = "http://www.basketball-reference.com/boxscores/plus-minus/" + gameID + ".html";
+							isHomeGame = not game_row.find("td", {"data-stat": "game_location"}).text == "@"
 
-						process_plus_minus(plus_minus_link, isHomeGame + 1, num_overtimes, players);
+							overtime_string = game_row.find("td", {"data-stat": "overtimes"}).text;
+							num_overtimes = 0;
+							if overtime_string:
+								if overtime_string == "OT":
+									num_overtimes = 1;
+								else:
+									num_overtimes = int(overtime_string[0]);
+							plus_minus_link = "http://www.basketball-reference.com/boxscores/plus-minus/" + gameID + ".html";
+
+							process_plus_minus(plus_minus_link, isHomeGame, num_overtimes, players);
 
 					player_list = players.values();
 					players_by_starts = sorted(player_list, key=lambda p: p.games_started, reverse=True);
 					starters = sorted(players_by_starts[0:5], key=lambda p: p.get_position_val());
 					bench = sorted(players_by_starts[5:], key=lambda p: p.minutes_played, reverse=True);
 
-					with open("data/new_script/" + year + "/" + team_abr + ".csv", "wb") as f:
+					with open("data/" + year + "/" + team_abr + ".csv", "wb") as f:
 						writer = csv.writer(f);
 						writer.writerow(["Name", "GamesPlayed", "MinutesPlayed"] + [str(x) for x in range(1,49)]);
 						for player in starters + bench:
-							writer.writerow([player.name, player.games_played, player.minutes_played] + [x / 82.0 for x in player.minutes_count] );
+							writer.writerow([player.name, player.games_played, player.minutes_played] + [x / gamesPlayed for x in player.minutes_count] );
 
 if __name__ == "__main__":
 	start_time = time.time();

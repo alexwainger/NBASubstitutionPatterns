@@ -1,6 +1,5 @@
 _Last Data Update: January 08, 2017_
 
-
 #NBA Substitution Patterns
 
 http://alexwainger.github.io/NBASubstitutionPatterns/

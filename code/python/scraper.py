@@ -195,7 +195,7 @@ def main():
 
 	original = [];
 	with open("README.md", "rb") as readme_read: original = readme_read.readlines()[1:];
-	with open("README.md", "wb") as readme_write: readme_write.write("".join(["_Last Data Update: " + today.strftime("%B %d, %Y") + "_\n\n"] + original))
+	with open("README.md", "wb") as readme_write: readme_write.write("".join(["_Last Data Update: " + today.strftime("%B %d, %Y") + "_\n"] + original))
 
 if __name__ == "__main__":
 	start_time = time.time();

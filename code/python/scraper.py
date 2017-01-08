@@ -132,7 +132,7 @@ def process_plus_minus(plus_minus_link, isHomeGame, num_overtimes, players):
 def main():
 
 	today = datetime.now().date();
-	years = ["2017"];
+	years = [];
 
 	for year in years:
 		print "DOING YEAR " + year;
@@ -191,6 +191,11 @@ def main():
 						writer.writerow(["Name", "GamesPlayed", "MinutesPlayed"] + [str(x) for x in range(1,49)]);
 						for player in starters + bench:
 							writer.writerow([player.name, player.games_played, player.minutes_played] + [x / gamesPlayed for x in player.minutes_count] );
+
+
+	original = [];
+	with open("README.md", "rb") as readme_read: original = readme_read.readlines()[1:];
+	with open("README.md", "wb") as readme_write: readme_write.write("".join(["_Last Data Update: " + today.strftime("%B %d, %Y") + "_\n\n"] + original))
 
 if __name__ == "__main__":
 	start_time = time.time();

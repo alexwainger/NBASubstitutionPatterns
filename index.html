@@ -4,6 +4,7 @@
 		<title>NBA Substitution Patterns</title>
 		<link rel="icon" type="image/png" href="img/icon.png">	  
 		<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+		<link href="https://fonts.googleapis.com/css?family=Roboto:400,500" rel="stylesheet">
 		<style>
 			hr {
 				margin-top:0px;
@@ -19,10 +20,12 @@
 			}
 
 			h2 {
+				font-family: 'Roboto', san-serif;
 				margin-top:10px;
 			}
-			p.description {
-				font-size: 9pt;
+			p {
+				font-family: 'Roboto', san-serif;
+				font-size: 10pt;
 				margin-bottom:0px;
 				margin-top:5px;
 				margin-left: 145px;
@@ -59,6 +62,7 @@
 			<hr>
 			<div>
 				<p class="description">Each row represents a different player, while each column represents a particular minute. The color of each cell indicates the percentage of games that the player played that minute. The percentages are out of 82 games, not the number of games the player played, so 2014-15 Kevin Durant has a 30-40% color for the first minute, even though he started all 27 games that he played in, since he missed 55 games with an injury.</p>
+				<p><i>Last Data Update: <span id="lastDataUpdate">January 6, 2017</span></i></p>
 			</div>
 			<div class="controls">
 				<select id="team" class="midAlign">

@@ -196,6 +196,7 @@ def main():
 	original = [];
 	with open("README.md", "rb") as readme_read: original = readme_read.readlines()[1:];
 	with open("README.md", "wb") as readme_write: readme_write.write("".join(["_Last Data Update: " + ("{d:%B} {d.day}, {d.year}_\n").format(d = today)] + original))
+	with open("data/last_update.txt", "wb") as last_update: last_update.write(("{d:%B} {d.day}, {d.year}\n").format(d = today));
 
 if __name__ == "__main__":
 	start_time = time.time();

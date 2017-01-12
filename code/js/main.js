@@ -13,6 +13,10 @@ $(document).ready(function() {
 		colors.push(d3.interpolateYlOrRd(i));
 	}
 
+	d3.text("data/last_update.txt", function(error, data) {
+		
+	})
+
 	var svg = d3.select("#heatmap").append("svg")
 		.attr("width", width + margin.left + margin.right)
 		.attr("height", height + margin.top + margin.bottom)

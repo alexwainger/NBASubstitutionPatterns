@@ -132,7 +132,7 @@ def process_plus_minus(plus_minus_link, isHomeGame, num_overtimes, players):
 def main():
 
 	today = datetime.now().date();
-	years = [];
+	years = ["2017"];
 
 	for year in years:
 		print "DOING YEAR " + year;

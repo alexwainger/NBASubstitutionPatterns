@@ -14,7 +14,7 @@ $(document).ready(function() {
 	}
 
 	d3.text("data/last_update.txt", function(error, data) {
-		
+		d3.select("#lastDataUpdate").text(data);
 	})
 
 	var svg = d3.select("#heatmap").append("svg")

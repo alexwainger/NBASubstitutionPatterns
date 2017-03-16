@@ -98,7 +98,11 @@ def generate_player_dictionary(team_page_link):
 width_regex = re.compile("width:([0-9]+)px;");
 def process_plus_minus(plus_minus_link, isHomeGame, num_overtimes, players):
 	print plus_minus_link;
-	response = urllib2.urlopen(urllib2.Request(plus_minus_link, headers={'User-Agent': 'Mozilla'})).read();
+	try:
+		response = urllib2.urlopen(urllib2.Request(plus_minus_link, headers={'User-Agent': 'Mozilla'})).read();
+	except urllib2.HTTPError:
+		return False
+
 	pm_soup = BeautifulSoup(response, 'lxml');
 	pm_div = pm_soup.find("div", {"class": "plusminus"});
 	style_div =pm_div.find("div", recursive=False);
@@ -128,6 +132,8 @@ def process_plus_minus(plus_minus_link, isHomeGame, num_overtimes, players):
 						raise;
 
 				curr_minute += span_length;
+
+	return True
 
 def main():
 
@@ -161,6 +167,7 @@ def main():
 					for game_row in game_rows:
 						gameDate = datetime.strptime(game_row.find("td", {"data-stat": "date_game"})['csk'], "%Y-%m-%d").date();
 						if gameDate >= today:
+							print "breaking because of date"
 							break;
 						else:
 							gamesPlayed += 1.0;
@@ -179,7 +186,9 @@ def main():
 									num_overtimes = int(overtime_string[0]);
 							plus_minus_link = "http://www.basketball-reference.com/boxscores/plus-minus/" + gameID + ".html";
 
-							process_plus_minus(plus_minus_link, isHomeGame, num_overtimes, players);
+							if not process_plus_minus(plus_minus_link, isHomeGame, num_overtimes, players):
+								print "Breaking because of 404"
+								break;
 
 					player_list = players.values();
 					players_by_starts = sorted(player_list, key=lambda p: p.games_started, reverse=True);
@@ -190,8 +199,9 @@ def main():
 						writer = csv.writer(f);
 						writer.writerow(["Name", "GamesPlayed", "MinutesPlayed"] + [str(x) for x in range(1,49)]);
 						for player in starters + bench:
-							writer.writerow([player.name, player.games_played, player.minutes_played] + [x / gamesPlayed for x in player.minutes_count] );
-
+							print player.name, player.games_played
+							if player.games_played > 0:
+								writer.writerow([player.name, player.games_played, player.minutes_played] + [x / player.games_played for x in player.minutes_count] );
 
 	original = [];
 	with open("README.md", "rb") as readme_read: original = readme_read.readlines()[1:];

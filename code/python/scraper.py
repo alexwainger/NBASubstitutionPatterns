@@ -98,7 +98,10 @@ def generate_player_dictionary(team_page_link):
 width_regex = re.compile("width:([0-9]+)px;");
 def process_plus_minus(plus_minus_link, isHomeGame, num_overtimes, players):
 	print plus_minus_link;
-	response = urllib2.urlopen(urllib2.Request(plus_minus_link, headers={'User-Agent': 'Mozilla'})).read();
+	try:
+		response = urllib2.urlopen(urllib2.Request(plus_minus_link, headers={'User-Agent': 'Mozilla'})).read();
+	except urllib2.HTTPError:
+		return False
 	pm_soup = BeautifulSoup(response, 'lxml');
 	pm_div = pm_soup.find("div", {"class": "plusminus"});
 	style_div =pm_div.find("div", recursive=False);
@@ -128,6 +131,8 @@ def process_plus_minus(plus_minus_link, isHomeGame, num_overtimes, players):
 						raise;
 
 				curr_minute += span_length;
+
+	return True
 
 def main():
 
@@ -161,9 +166,9 @@ def main():
 					for game_row in game_rows:
 						gameDate = datetime.strptime(game_row.find("td", {"data-stat": "date_game"})['csk'], "%Y-%m-%d").date();
 						if gameDate >= today:
+							print "Breaking due to date"
 							break;
 						else:
-							gamesPlayed += 1.0;
 							game_link = game_row.find("td", {"data-stat": "box_score_text"}).find("a")['href'];
 							gameID_regex = re.compile('^/boxscores/([^.]+).html');
 							gameID = gameID_regex.search(game_link).group(1);
@@ -179,7 +184,11 @@ def main():
 									num_overtimes = int(overtime_string[0]);
 							plus_minus_link = "http://www.basketball-reference.com/boxscores/plus-minus/" + gameID + ".html";
 
-							process_plus_minus(plus_minus_link, isHomeGame, num_overtimes, players);
+							if not process_plus_minus(plus_minus_link, isHomeGame, num_overtimes, players):
+								print "Breaking due to 404"
+								break;
+
+							gamesPlayed += 1.0;
 
 					player_list = players.values();
 					players_by_starts = sorted(player_list, key=lambda p: p.games_started, reverse=True);

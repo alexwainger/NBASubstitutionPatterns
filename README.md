@@ -1,14 +1,14 @@
-_Last Data Update: March 27, 2017_
+# NBA Substitution Patterns
 
-#NBA Substitution Patterns
+_Last Data Update: March 27, 2017_
 
 http://alexwainger.github.io/NBASubstitutionPatterns/
 
 This project uses aggregated on-off data to visualize each team's substitution patterns dating back to the 2012-2013 season. I sporadically run the script to collect the latest data for the current season.
 
 
-#Reception
+## Reception
 
 Original r/nba Reddit Post: https://redd.it/5069gr
 
-Fan post on r/RipCity: https://redd.it/50ci7w
+Article on SBNation's Clippers blog: http://www.clipsnation.com/2017/3/27/15070832/dilemma-staggering-the-clippers-stars-chris-paul-blake-griffin-deandre-jordan

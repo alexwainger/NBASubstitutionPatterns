@@ -1,6 +1,6 @@
-# NBA Substitution Patterns
+_Last Data Update: December 20, 2017_
 
-_Last Data Update: December 19, 2017_
+# NBA Substitution Patterns
 
 http://alexwainger.github.io/NBASubstitutionPatterns/
 

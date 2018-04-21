@@ -1,13 +1,13 @@
 _Last Data Update: April 20, 2018_
 
-#NBA Substitution Patterns
+# NBA Substitution Patterns
 
 http://alexwainger.github.io/NBASubstitutionPatterns/
 
 This project uses aggregated on-off data to visualize each team's substitution patterns dating back to the 2012-2013 season. I sporadically run the script to collect the latest data for the current season.
 
 
-#Reception
+# Reception
 
 Original r/nba Reddit Post: https://redd.it/5069gr
 

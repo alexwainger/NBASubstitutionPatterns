@@ -137,7 +137,7 @@ def process_plus_minus(plus_minus_link, isHomeGame, num_overtimes, players):
 def main():
 
 	today = datetime.now().date();
-	years = ["2019"];
+	years = ["2020"];
 
 	for year in years:
 		print "DOING YEAR " + year;
@@ -199,7 +199,7 @@ def main():
 						writer = csv.writer(f);
 						writer.writerow(["Name", "GamesPlayed", "MinutesPlayed"] + [str(x) for x in range(1,49)]);
 						for player in starters + bench:
-							writer.writerow([player.name, player.games_played, player.minutes_played] + [x / gamesPlayed for x in player.minutes_count] );
+							writer.writerow([player.name.encode('utf-8'), player.games_played, player.minutes_played] + [x / gamesPlayed for x in player.minutes_count] );
 
 
 	original = [];

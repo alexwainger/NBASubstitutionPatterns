@@ -12,8 +12,9 @@ import time
 
 class Player:
 
-	def __init__(self, name, position):
+	def __init__(self, name, cleaned_name, position):
 		self.name = name;
+		self.cleaned_name = cleaned_name;
 		self.position = position;
 		self.minutes_count = [0.0] * 48;
 		self.games_count = 0;
@@ -46,6 +47,9 @@ class Player:
 		print "Uh oh, no position for: " + self.name;
 		return 0;
 
+def clean_name(name):
+	return name.replace(" Jr.", "").replace(" III", "").replace(" II", "")
+
 def generate_player_dictionary(team_page_link):
 	player_dict = {};
 	response = urllib2.urlopen("http://www.basketball-reference.com" + team_page_link).read();
@@ -54,21 +58,12 @@ def generate_player_dictionary(team_page_link):
 
 	for player_row in roster_rows:
 		player_name = player_row.find("td", {"data-stat": "player"}).find("a").text;
-		if player_name == "Glenn Robinson III":
-			player_name = "Glenn Robinson";
-		elif player_name == "Nene":
-			player_name = "Nene Hilario";
-		elif player_name == "Taurean Prince":
-			player_name = "Taurean Waller-Prince";
-		elif player_name == "Kelly Oubre Jr.":
-			player_name = "Kelly Oubre";
 
 		position = player_row.find("td", {"data-stat": "pos"}).text;
 		if player_name in player_dict:
 			print 'Uh oh, we found a duplicate: ' + player_name +" on " + team_page_link;
 		else:
-			p = Player(player_name, position);
-			player_dict[player_name] = p;
+			player_dict[clean_name(player_name)] = Player(player_name, clean_name(player_name), position);
 
 	comments = team_page.findAll(text=lambda text:isinstance(text, Comment))
 	for comment in comments:
@@ -81,11 +76,14 @@ def generate_player_dictionary(team_page_link):
 				cols = totals_row.findAll("td");
 				player_name = cols[0].find("a").text;
 
+				if player_name == "Taurean Waller-Prince":
+					player_name = "Taurean Prince";
+
 				if player_name not in player_dict:
-					player_dict[player_name] = Player(player_name, "N/A");
+					player_dict[clean_name(player_name)] = Player(player_name, clean_name(player_name), "N/A");
 					print "Adding ", player_name;
 
-				p = player_dict[player_name];
+				p = player_dict[clean_name(player_name)];
 
 				games_played = int(cols[2].find("a").text);
 				games_started = int(cols[3].text);
@@ -115,7 +113,7 @@ def process_plus_minus(plus_minus_link, isHomeGame, num_overtimes, players):
 	minute_width = total_width / total_minutes;
 	for player_row, minutes_row in izip(*[iter(rows)] * 2):
 		player_name = player_row.find('span').text;
-		player_obj = players[player_name];
+		player_obj = players[clean_name(player_name)];
 		player_obj.games_count += 1;
 		curr_minute = 0.0;
 		for bar in minutes_row.findAll('div'):
@@ -199,7 +197,11 @@ def main():
 						writer = csv.writer(f);
 						writer.writerow(["Name", "GamesPlayed", "MinutesPlayed"] + [str(x) for x in range(1,49)]);
 						for player in starters + bench:
-							print player.name, player.games_played
+							print "{0}{1}: {2}".format(
+								player.name.encode("utf-8"),
+								player.cleaned_name.encode("utf-8") if player.name != player.cleaned_name else "",
+								player.games_played
+							)
 							if player.games_played > 0:
 								writer.writerow([player.name.encode('utf-8'), player.games_played, player.minutes_played] + [x / player.games_played for x in player.minutes_count] );
 

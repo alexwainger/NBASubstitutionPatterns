@@ -1,4 +1,4 @@
-_Last Data Update: August 26, 2020_
+_Last Data Update: August 31, 2020_
 
 # NBA Substitution Patterns
 

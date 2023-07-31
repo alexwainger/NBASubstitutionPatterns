@@ -5,7 +5,7 @@
 		<key>Label</key>
 		<string>NBASubstitutionPatterns.UpdateData</string>
 		<key>Program</key>
-		<string>/Users/alexwainger/Code/Projects/NBASubstitutionPatterns/update_data.sh</string>
+		<string>/Users/matt/Documents/NBASubstitutionPatterns/update_data.sh</string>
 		<key>StartCalendarInterval</key>
 		<dict>
 			<key>Weekday</key>
@@ -16,6 +16,6 @@
 			<integer>0</integer>
 		</dict>
 		<key>WorkingDirectory</key>
-		<string>/Users/alexwainger/Code/Projects/NBASubstitutionPatterns/</string>
+		<string>/Users/matt/Documents/NBASubstitutionPatterns/</string>
 	</dict>
 </plist>
